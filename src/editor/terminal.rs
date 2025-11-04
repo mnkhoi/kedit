@@ -34,8 +34,8 @@ impl Terminal {
         queue!(stdout(), Show)
     }
 
-    pub fn print(output: String) -> Result<(), Error> {
-        queue!(stdout(), Print(output))
+    pub fn print(output: impl Into<String>) -> Result<(), Error> {
+        queue!(stdout(), Print(output.into()))
     }
 
     pub fn flush() -> Result<(), Error> {

@@ -5,6 +5,9 @@ mod terminal;
 
 use terminal::{Position, Size, Terminal};
 
+const EDITOR_NAME: &str = env!("CARGO_PKG_NAME");
+const EDITOR_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub struct Editor {
     should_quit: bool,
 }
@@ -48,13 +51,40 @@ impl Editor {
         Ok(())
     }
 
+    fn draw_welcome_row() -> Result<(), Error> {
+        let Size { height, width } = Terminal::size()?;
+        let mut welcome_message = format!("{EDITOR_NAME} editor -- version {EDITOR_VERSION}");
+        let len = welcome_message.len();
+
+        let padding = (width as usize - len) / 2;
+
+        let spaces = " ".repeat(padding - 1);
+
+        welcome_message = format!("~{spaces}{welcome_message}");
+
+        welcome_message.truncate(width as usize);
+
+        Terminal::print(welcome_message)?;
+
+        Ok(())
+    }
+
+    fn draw_empty_row() -> Result<(), Error> {
+        Terminal::print("~")?;
+        Ok(())
+    }
+
     fn draw_rows() -> Result<(), Error> {
         let Size { height, .. } = Terminal::size()?;
 
         for row in 0..height {
             Terminal::clear_line()?;
             Terminal::move_cursor_to(Position { x: 0, y: row })?;
-            Terminal::print("~".to_string())?;
+            if row == height / 3 {
+                Self::draw_welcome_row()?;
+            } else {
+                Self::draw_empty_row()?;
+            }
             if row + 1 < height {
                 Terminal::print("\r\n".to_string())?;
             }
