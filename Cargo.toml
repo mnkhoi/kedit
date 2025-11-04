@@ -1,0 +1,9 @@
+[package]
+name = "kedit"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clay-layout = "0.4"
+crossterm = "0.29.0"
+
