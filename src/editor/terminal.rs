@@ -1,41 +1,46 @@
 use crossterm::cursor::{Hide, MoveTo, Show};
-use crossterm::queue;
 use crossterm::style::Print;
-use crossterm::terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode, size};
-use std::io::{Error, Write, stdout};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearType};
+use crossterm::{queue, Command};
+use std::io::{stdout, Error, Write};
 
 #[derive(Clone, Copy)]
 pub struct Size {
-    pub height: u16,
-    pub width: u16,
+    pub height: usize,
+    pub width: usize,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Position {
-    pub x: u16,
-    pub y: u16,
+    pub col: usize,
+    pub row: usize,
 }
 
 pub struct Terminal;
 
+/// Represents the Terminal
+/// Edge Case:
+///     - Platform of `usize` < `ul6` -> Only spans over at most usize::MAX
+///     or `u16::size` rows/columns
+///     - Each size returned truncates to min(usize::MAX, u16::MAX)
+///     - caret out of bound will be truncated
 impl Terminal {
     pub fn initialize() -> Result<(), Error> {
         enable_raw_mode()?;
         Self::clear_screen()?;
-        Self::move_cursor_to(Position { x: 0, y: 0 })?;
         Self::flush()
     }
 
-    pub fn hide_cursor() -> Result<(), Error> {
-        queue!(stdout(), Hide)
+    pub fn hide_caret() -> Result<(), Error> {
+        Self::queue_command(Hide)
     }
 
-    pub fn show_cursor() -> Result<(), Error> {
-        queue!(stdout(), Show)
+    pub fn show_caret() -> Result<(), Error> {
+        Self::queue_command(Show)
     }
 
     pub fn print(output: impl Into<String>) -> Result<(), Error> {
-        queue!(stdout(), Print(output.into()))
+        Self::queue_command(Print(output.into()))
     }
 
     pub fn flush() -> Result<(), Error> {
@@ -49,25 +54,37 @@ impl Terminal {
     }
 
     pub fn clear_screen() -> Result<(), Error> {
-        let mut stdout = stdout();
-        queue!(stdout, Clear(ClearType::All))
+        Self::queue_command(Clear(ClearType::All))
     }
 
     pub fn clear_line() -> Result<(), Error> {
-        let mut stdout = stdout();
-        queue!(stdout, Clear(ClearType::CurrentLine))
+        Self::queue_command(Clear(ClearType::CurrentLine))
     }
 
+    /// Returns: the current size of Terminal
+    /// Edge Case:
+    ///     - Systems with `usize` < `u16` -> Size represents the terminal size.
+    ///       Any coordinate `x` truncates to size `usize` if `usize` < `x`< `u16`
     pub fn size() -> Result<Size, Error> {
         let size = size()?;
+        #[allow(clippy::as_conversions)]
         Ok(Size {
-            height: size.1,
-            width: size.0,
+            height: size.1 as usize,
+            width: size.0 as usize,
         })
     }
 
-    pub fn move_cursor_to(position: Position) -> Result<(), Error> {
-        queue!(stdout(), MoveTo(position.x, position.y))?;
+    /// Moves caret to given Position
+    /// Arguments:
+    /// * `Position` - The `Position` to move the caret to. Will truncated to `u16::MAX` if larger
+    pub fn move_caret_to(position: Position) -> Result<(), Error> {
+        #[allow(clippy::as_conversions, clippy::cast_possible_truncation)]
+        Self::queue_command(MoveTo(position.col as u16, position.row as u16))?;
+        Ok(())
+    }
+
+    fn queue_command<T: Command>(command: T) -> Result<(), Error> {
+        queue!(stdout(), command)?;
         Ok(())
     }
 }
