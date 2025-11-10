@@ -3,14 +3,13 @@ use crossterm::event::{
     Event::{self, Key},
     KeyCode, KeyEvent, KeyEventKind, KeyModifiers, read,
 };
-use std::io::Error;
+use std::{env, io::Error};
 
 mod terminal;
+mod view;
 
 use terminal::{Position, Size, Terminal};
-
-const EDITOR_NAME: &str = env!("CARGO_PKG_NAME");
-const EDITOR_VERSION: &str = env!("CARGO_PKG_VERSION");
+use view::View;
 
 #[derive(Clone, Copy, Default)]
 struct Location {
@@ -22,14 +21,23 @@ struct Location {
 pub struct Editor {
     should_quit: bool,
     location: Location,
+    view: View,
 }
 
 impl Editor {
     pub fn run(&mut self) {
         Terminal::initialize().unwrap();
+        self.handle_args();
         let result = self.repl();
         Terminal::terminate().unwrap();
         result.unwrap();
+    }
+
+    fn handle_args(&mut self) {
+        let args: Vec<String> = env::args().collect();
+        if let Some(file_name) = args.get(1) {
+            self.view.load(file_name);
+        }
     }
 
     fn repl(&mut self) -> Result<(), Error> {
@@ -39,18 +47,18 @@ impl Editor {
                 break;
             }
             let event = read()?;
-            self.evaluate_event(&event)?;
+            self.evaluate_event(event)?;
         }
         Ok(())
     }
 
-    fn refresh_screen(&self) -> Result<(), Error> {
+    fn refresh_screen(&mut self) -> Result<(), Error> {
         Terminal::hide_caret()?;
         if self.should_quit {
             Terminal::clear_screen()?;
-            Terminal::print("Goodbye.\r\n".to_string())?;
+            Terminal::print("Goodbye.\r\n")?;
         } else {
-            Self::draw_rows()?;
+            self.view.render()?;
             Terminal::move_caret_to(Position {
                 col: self.location.x,
                 row: self.location.y,
@@ -62,80 +70,44 @@ impl Editor {
         Ok(())
     }
 
-    fn draw_welcome_row() -> Result<(), Error> {
-        let Size { width, .. } = Terminal::size()?;
-        let mut welcome_message = format!("{EDITOR_NAME} editor -- version {EDITOR_VERSION}");
-        let len = welcome_message.len();
-
-        #[allow(clippy::integer_division)]
-        let padding = (width.saturating_sub(len)) / 2;
-
-        let spaces = " ".repeat(padding.saturating_sub(1));
-
-        welcome_message = format!("~{spaces}{welcome_message}");
-
-        welcome_message.truncate(width);
-
-        Terminal::print(welcome_message)?;
-
-        Ok(())
-    }
-
-    fn draw_empty_row() -> Result<(), Error> {
-        Terminal::print("~")?;
-        Ok(())
-    }
-
-    fn draw_rows() -> Result<(), Error> {
-        let Size { height, .. } = Terminal::size()?;
-
-        for row in 0..height {
-            Terminal::clear_line()?;
-            Terminal::move_caret_to(Position { col: 0, row })?;
-            #[allow(clippy::integer_division)]
-            if row == height / 3 {
-                Self::draw_welcome_row()?;
-            } else {
-                Self::draw_empty_row()?;
-            }
-            if row.saturating_add(1) < height {
-                Terminal::print("\r\n".to_string())?;
-            }
-        }
-
-        Terminal::flush()
-    }
-
-    fn evaluate_event(&mut self, event: &Event) -> Result<(), Error> {
-        if let Key(KeyEvent {
-            code,
-            modifiers,
-            kind: KeyEventKind::Press,
-            ..
-        }) = event
-        {
-            println!("Code: {code:?} Modifiers: {modifiers:?}\r");
-
-            match code {
-                KeyCode::Char('q') if *modifiers == KeyModifiers::CONTROL => {
+    fn evaluate_event(&mut self, event: Event) -> Result<(), Error> {
+        match event {
+            Key(KeyEvent {
+                code,
+                modifiers,
+                kind: KeyEventKind::Press,
+                ..
+            }) => match (code, modifiers) {
+                (KeyCode::Char('q'), KeyModifiers::CONTROL) => {
                     self.should_quit = true;
                 }
-                KeyCode::Up
-                | KeyCode::Down
-                | KeyCode::Left
-                | KeyCode::Right
-                | KeyCode::Char('h')
-                | KeyCode::Char('l')
-                | KeyCode::Char('j')
-                | KeyCode::Char('k')
-                | KeyCode::PageUp
-                | KeyCode::PageDown
-                | KeyCode::End
-                | KeyCode::Home => {
-                    self.move_point(*code)?;
+                (
+                    KeyCode::Up
+                    | KeyCode::Down
+                    | KeyCode::Left
+                    | KeyCode::Right
+                    | KeyCode::Char('h')
+                    | KeyCode::Char('l')
+                    | KeyCode::Char('j')
+                    | KeyCode::Char('k')
+                    | KeyCode::PageUp
+                    | KeyCode::PageDown
+                    | KeyCode::End
+                    | KeyCode::Home,
+                    _,
+                ) => {
+                    self.move_point(code)?;
                 }
                 _ => (),
+            },
+            Event::Resize(width_u16, height_u16) => {
+                #[allow(clippy::as_conversions)]
+                let height = height_u16 as usize;
+                let width = width_u16 as usize;
+
+                self.view.resize(Size { height, width });
             }
+            _ => (),
         }
         Ok(())
     }

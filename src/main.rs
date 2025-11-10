@@ -6,6 +6,7 @@
     clippy::as_conversions,
     clippy::integer_division
 )]
+
 mod editor;
 
 use editor::Editor;

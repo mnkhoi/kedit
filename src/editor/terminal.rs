@@ -1,10 +1,10 @@
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::style::Print;
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, size, Clear, ClearType};
-use crossterm::{queue, Command};
-use std::io::{stdout, Error, Write};
+use crossterm::terminal::{Clear, ClearType, disable_raw_mode, enable_raw_mode, size};
+use crossterm::{Command, queue};
+use std::io::{Error, Write, stdout};
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub struct Size {
     pub height: usize,
     pub width: usize,
@@ -16,6 +16,7 @@ pub struct Position {
     pub row: usize,
 }
 
+#[derive(Default, Clone, Copy)]
 pub struct Terminal;
 
 /// Represents the Terminal
@@ -39,8 +40,8 @@ impl Terminal {
         Self::queue_command(Show)
     }
 
-    pub fn print(output: impl Into<String>) -> Result<(), Error> {
-        Self::queue_command(Print(output.into()))
+    pub fn print(output: &str) -> Result<(), Error> {
+        Self::queue_command(Print(output))
     }
 
     pub fn flush() -> Result<(), Error> {
