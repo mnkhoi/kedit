@@ -1,4 +1,4 @@
-use std::{cmp, ops::Range};
+use std::ops::Range;
 
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -15,15 +15,19 @@ impl Line {
         let fragments = line_str
             .graphemes(true)
             .map(|grapheme| {
-                let unicode_width = grapheme.width();
-                let rendered_width = match unicode_width {
-                    0 | 1 => GraphemeWidth::Half,
-                    _ => GraphemeWidth::Full,
-                };
-                let replacement = match unicode_width {
-                    0 => Some('.'),
-                    _ => None,
-                };
+                let (replacement, rendered_width) = Self::replacement_character(grapheme)
+                    .map_or_else(
+                        || {
+                            let unicode_width = grapheme.width();
+                            let rendered_width = match unicode_width {
+                                0 | 1 => GraphemeWidth::Half,
+                                _ => GraphemeWidth::Full,
+                            };
+                            (None, rendered_width)
+                        },
+                        |replacement| (Some(replacement), GraphemeWidth::Half),
+                    );
+
                 TextFragment {
                     grapheme: grapheme.to_string(),
                     rendered_width,
@@ -32,6 +36,25 @@ impl Line {
             })
             .collect();
         Self { fragments }
+    }
+
+    fn replacement_character(for_str: &str) -> Option<char> {
+        let width = for_str.width();
+        match for_str {
+            " " => None,
+            "\t" => Some(' '),
+            _ if width > 0 && for_str.trim().is_empty() => Some('␣'),
+            _ if width == 0 => {
+                let mut chars = for_str.chars();
+                if let Some(ch) = chars.next() {
+                    if ch.is_control() && chars.next().is_none() {
+                        return Some('▯');
+                    }
+                }
+                Some('.')
+            }
+            _ => None,
+        }
     }
 
     pub fn get_visible_graphemes(&self, range: Range<usize>) -> String {
@@ -51,9 +74,9 @@ impl Line {
                     result.push('⋯');
                 } else if let Some(char) = fragment.replacement {
                     result.push(char);
+                } else {
+                    result.push_str(&fragment.grapheme);
                 }
-            } else {
-                result.push_str(&fragment.grapheme);
             }
             current_pos = fragment_end;
         }
@@ -64,19 +87,14 @@ impl Line {
         self.fragments.len()
     }
 
-    pub fn width_until(&self, grapheme_index: usize) -> usize {}
-
-    pub fn get(&self, range: Range<usize>) -> String {
-        let start = range.start;
-        let end = cmp::min(range.end, self.fragments.len());
-        let mut result = String::new();
+    pub fn width_until(&self, grapheme_index: usize) -> usize {
         self.fragments
-            .get(start..end)
-            .unwrap_or_default()
-            .to_string()
-    }
-
-    pub fn len(&self) -> usize {
-        self.fragments.len()
+            .iter()
+            .take(grapheme_index)
+            .map(|fragment| match fragment.rendered_width {
+                GraphemeWidth::Half => 1,
+                GraphemeWidth::Full => 2,
+            })
+            .sum()
     }
 }

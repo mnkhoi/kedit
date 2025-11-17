@@ -1,4 +1,4 @@
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub enum GraphemeWidth {
     Full,
     Half,
@@ -13,7 +13,7 @@ impl GraphemeWidth {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct TextFragment {
     pub grapheme: String,
     pub rendered_width: GraphemeWidth,
