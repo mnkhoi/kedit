@@ -7,6 +7,7 @@ use std::cmp::min;
 mod buffer;
 mod line;
 mod location;
+mod text_fragment;
 
 use buffer::Buffer;
 use line::Line;
