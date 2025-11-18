@@ -291,7 +291,10 @@ impl View {
     // End Region: Text Location Movement
 
     // Start Region: Text Addition
-    fn insert_at_current_location(&mut self, c: char) {}
+    fn insert_at_current_location(&mut self, c: char) {
+        self.buffer.inser
+    }
+
     // End Region: Text Addition
 }
 
