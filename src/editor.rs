@@ -5,16 +5,17 @@ use std::{
     panic::{set_hook, take_hook},
 };
 
-mod editorcommand;
+mod command;
 mod terminal;
 mod view;
 
-use editorcommand::EditorCommand;
+use command::{EditorCommand, Mode};
 use terminal::Terminal;
 use view::View;
 
 pub struct Editor {
     should_quit: bool,
+    mode: Mode,
     view: View,
 }
 
@@ -35,6 +36,7 @@ impl Editor {
 
         Ok(Self {
             should_quit: false,
+            mode: Mode::Normal,
             view,
         })
     }
@@ -74,19 +76,17 @@ impl Editor {
         };
 
         if should_process {
-            match EditorCommand::try_from(event) {
-                Ok(command) => {
-                    if matches!(command, EditorCommand::Quit) {
-                        self.should_quit = true;
-                    } else {
+            match EditorCommand::try_from(event, &self.mode) {
+                Ok(command) => match command {
+                    EditorCommand::Quit => self.should_quit = true,
+                    EditorCommand::Esc => self.mode = Mode::Normal,
+                    EditorCommand::Change(mode) => self.mode = mode,
+                    _ => {
                         self.view.handle_command(command);
                     }
-                }
-                Err(err) => {
-                    #[cfg(debug_assertions)]
-                    {
-                        panic!("Could not handle command: {err}");
-                    }
+                },
+                Err(_) => {
+                    // Silently ignore all unwanted key presses
                 }
             }
         } else {

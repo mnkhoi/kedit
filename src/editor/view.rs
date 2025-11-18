@@ -1,5 +1,5 @@
 use super::{
-    editorcommand::{Direction, EditorCommand},
+    command::{Direction, EditorCommand, InsertCommand, NormalCommand, VisualCommand},
     terminal::{Position, Size, Terminal},
 };
 use std::cmp::min;
@@ -29,20 +29,42 @@ pub struct Location {
 }
 
 impl View {
+    // Start Region: Handle Editor Command
+    pub fn handle_command(&mut self, command: EditorCommand) {
+        match command {
+            EditorCommand::Normal(normal_command) => self.handle_normal_command(normal_command),
+            EditorCommand::Visual(visual_command) => self.handle_visual_command(visual_command),
+            EditorCommand::Insert(insert_command) => self.handle_insert_command(insert_command),
+            _ => {
+                // Other cases should have been handled from the editor.rs
+            }
+        }
+    }
+
+    fn handle_normal_command(&mut self, command: NormalCommand) {
+        match command {
+            NormalCommand::Move(direction) => self.move_text_location(&direction),
+        }
+    }
+    // TODO: To be implemented when we have visual command
+    #[allow(unused_variables)]
+    fn handle_visual_command(&mut self, command: VisualCommand) {}
+
+    fn handle_insert_command(&mut self, command: InsertCommand) {
+        match command {
+            InsertCommand::Char(c) => {
+                self.insert_at_current_location(c);
+            }
+        }
+    }
+    // End Region: Handle: Editor Command
+
     // Start Region: Misc
 
     pub fn load(&mut self, file_name: &str) {
         if let Ok(buffer) = Buffer::load(file_name) {
             self.buffer = buffer;
             self.needs_redraw = true;
-        }
-    }
-
-    pub fn handle_command(&mut self, command: EditorCommand) {
-        match command {
-            EditorCommand::Resize(size) => self.resize(size),
-            EditorCommand::Move(direction) => self.move_text_location(&direction),
-            EditorCommand::Quit => {}
         }
     }
 
@@ -267,6 +289,10 @@ impl View {
     }
 
     // End Region: Text Location Movement
+
+    // Start Region: Text Addition
+    fn insert_at_current_location(&mut self, c: char) {}
+    // End Region: Text Addition
 }
 
 impl Default for View {
