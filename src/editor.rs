@@ -81,9 +81,7 @@ impl Editor {
                     EditorCommand::Quit => self.should_quit = true,
                     EditorCommand::Esc => self.mode = Mode::Normal,
                     EditorCommand::Change(mode) => self.mode = mode,
-                    _ => {
-                        self.view.handle_command(command);
-                    }
+                    _ => self.view.handle_command(command),
                 },
                 Err(_) => {
                     // Silently ignore all unwanted key presses

@@ -32,6 +32,7 @@ impl View {
     // Start Region: Handle Editor Command
     pub fn handle_command(&mut self, command: EditorCommand) {
         match command {
+            EditorCommand::Resize(size) => self.resize(size),
             EditorCommand::Normal(normal_command) => self.handle_normal_command(normal_command),
             EditorCommand::Visual(visual_command) => self.handle_visual_command(visual_command),
             EditorCommand::Insert(insert_command) => self.handle_insert_command(insert_command),
@@ -53,7 +54,7 @@ impl View {
     fn handle_insert_command(&mut self, command: InsertCommand) {
         match command {
             InsertCommand::Char(c) => {
-                self.insert_at_current_location(c);
+                self.insert_char(c);
             }
         }
     }
@@ -291,8 +292,28 @@ impl View {
     // End Region: Text Location Movement
 
     // Start Region: Text Addition
-    fn insert_at_current_location(&mut self, c: char) {
-        self.buffer.inser
+    fn insert_char(&mut self, character: char) {
+        let old_len = self
+            .buffer
+            .lines
+            .get(self.text_location.line_index)
+            .map_or(0, Line::grapheme_count);
+
+        self.buffer.insert_char(character, self.text_location);
+
+        let new_len = self
+            .buffer
+            .lines
+            .get(self.text_location.line_index)
+            .map_or(0, Line::grapheme_count);
+
+        let grapheme_delta = new_len.saturating_sub(old_len);
+
+        if grapheme_delta > 0 {
+            self.move_right();
+        }
+
+        self.needs_redraw = true;
     }
 
     // End Region: Text Addition

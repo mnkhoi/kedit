@@ -7,7 +7,7 @@ use crossterm::terminal::{
 use crossterm::{Command, queue};
 use std::io::{Error, Write, stdout};
 
-#[derive(Clone, Copy, Default)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct Size {
     pub height: usize,
     pub width: usize,

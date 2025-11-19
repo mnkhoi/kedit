@@ -2,7 +2,7 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
 use super::terminal::Size;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Mode {
     Normal,
     Insert,
@@ -15,6 +15,7 @@ impl Default for Mode {
     }
 }
 
+#[derive(Debug)]
 pub enum Direction {
     PageUp,
     PageDown,
@@ -26,18 +27,22 @@ pub enum Direction {
     Down,
 }
 
+#[derive(Debug)]
 pub enum NormalCommand {
     Move(Direction),
 }
 
+#[derive(Debug)]
 pub enum InsertCommand {
     Char(char),
 }
 
+#[derive(Debug)]
 pub enum VisualCommand {
     None,
 }
 
+#[derive(Debug)]
 pub enum EditorCommand {
     Normal(NormalCommand),
     Insert(InsertCommand),
@@ -51,13 +56,12 @@ pub enum EditorCommand {
 }
 
 impl EditorCommand {
+    #[allow(clippy::as_conversions)]
     pub fn try_from(event: Event, mode: &Mode) -> Result<Self, String> {
+        // println!("Command: {event:?}, mode: {mode:?}");
         match (&event, &mode) {
             (Event::Resize(width_u16, height_u16), _) => {
-                #[allow(clippy::as_conversions)]
                 let height = height_u16.clone() as usize;
-
-                #[allow(clippy::as_conversions)]
                 let width = width_u16.clone() as usize;
 
                 Ok(Self::Resize(Size { height, width }))
@@ -109,7 +113,9 @@ impl EditorCommand {
         }) = event
         {
             match (code, modifiers) {
-                (KeyCode::Char(a), KeyModifiers::NONE) => Ok(Self::Insert(InsertCommand::Char(a))),
+                (KeyCode::Char(a), KeyModifiers::NONE | KeyModifiers::SHIFT) => {
+                    Ok(Self::Insert(InsertCommand::Char(a)))
+                }
                 _ => Err(format!(
                     "Other event not supported in insert mode: {event:?}"
                 )),
