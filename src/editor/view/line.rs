@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{fmt, ops::Range};
 
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -14,6 +14,12 @@ impl Line {
     pub fn from(line_str: &str) -> Self {
         let fragments = Self::str_to_fragments(line_str);
         Self { fragments }
+    }
+
+    pub fn append(&mut self, other: Self) {
+        let mut updated = self.to_string();
+        updated.push_str(&other.to_string());
+        self.fragments = Self::str_to_fragments(&updated);
     }
 
     fn str_to_fragments(line_str: &str) -> Vec<TextFragment> {
@@ -115,5 +121,27 @@ impl Line {
             result.push(character);
         }
         self.fragments = Self::str_to_fragments(&result);
+    }
+
+    pub fn delete(&mut self, grapheme_index: usize) {
+        let mut result = String::new();
+        for (index, fragment) in self.fragments.iter().enumerate() {
+            if index == grapheme_index {
+                continue;
+            }
+            result.push_str(&fragment.grapheme);
+        }
+        self.fragments = Self::str_to_fragments(&result);
+    }
+}
+
+impl fmt::Display for Line {
+    fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        let result: String = self
+            .fragments
+            .iter()
+            .map(|fragment| fragment.grapheme.clone())
+            .collect();
+        write!(formatter, "{result}")
     }
 }

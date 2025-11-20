@@ -35,6 +35,8 @@ pub enum NormalCommand {
 #[derive(Debug)]
 pub enum InsertCommand {
     Char(char),
+    Delete,
+    Backspace,
 }
 
 #[derive(Debug)]
@@ -116,6 +118,10 @@ impl EditorCommand {
                 (KeyCode::Char(a), KeyModifiers::NONE | KeyModifiers::SHIFT) => {
                     Ok(Self::Insert(InsertCommand::Char(a)))
                 }
+                (KeyCode::Backspace, KeyModifiers::NONE) => {
+                    Ok(Self::Insert(InsertCommand::Backspace))
+                }
+                (KeyCode::Delete, KeyModifiers::NONE) => Ok(Self::Insert(InsertCommand::Delete)),
                 _ => Err(format!(
                     "Other event not supported in insert mode: {event:?}"
                 )),
