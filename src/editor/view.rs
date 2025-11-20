@@ -93,6 +93,7 @@ impl View {
             current_line_index: self.text_location.line_index,
             is_modified: self.buffer.dirty,
             file_name: self.buffer.file_name.clone(),
+            mode: super::Mode::Normal,
         }
     }
 

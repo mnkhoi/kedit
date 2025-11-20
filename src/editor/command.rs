@@ -2,7 +2,7 @@ use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
 use super::terminal::Size;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Mode {
     Normal,
     Insert,

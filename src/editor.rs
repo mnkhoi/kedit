@@ -21,6 +21,7 @@ pub struct DocumentStatus {
     current_line_index: usize,
     is_modified: bool,
     file_name: Option<String>,
+    mode: Mode,
 }
 
 pub struct Editor {
@@ -63,7 +64,8 @@ impl Editor {
             match read() {
                 Ok(event) => {
                     self.evaluate_event(event);
-                    let status = self.view.get_status();
+                    let mut status = self.view.get_status();
+                    status.mode = self.mode;
                     self.status_bar.update_status(status);
                 }
                 Err(err) => {
