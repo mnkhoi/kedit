@@ -15,7 +15,7 @@ impl Default for Mode {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Direction {
     PageUp,
     PageDown,
@@ -27,12 +27,12 @@ pub enum Direction {
     Down,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum NormalCommand {
     Move(Direction),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum InsertCommand {
     Char(char),
     Delete,
@@ -40,12 +40,12 @@ pub enum InsertCommand {
     Enter,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum VisualCommand {
     None,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum EditorCommand {
     Normal(NormalCommand),
     Insert(InsertCommand),
@@ -54,6 +54,7 @@ pub enum EditorCommand {
     // Global events through all the modes
     Resize(Size),
     Change(Mode),
+    Save,
     Esc,
     Quit,
 }
@@ -85,6 +86,7 @@ impl EditorCommand {
                 (KeyCode::Char('i'), _) => Ok(Self::Change(Mode::Insert)),
                 (KeyCode::Char('v'), _) => Ok(Self::Change(Mode::Visual)),
                 (KeyCode::Char('q'), KeyModifiers::CONTROL) => Ok(Self::Quit),
+                (KeyCode::Char('s'), KeyModifiers::CONTROL) => Ok(Self::Save),
                 (KeyCode::Up, _) | (KeyCode::Char('k'), _) => {
                     Ok(Self::Normal(NormalCommand::Move(Direction::Up)))
                 }

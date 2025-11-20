@@ -1,3 +1,4 @@
+use super::DocumentStatus;
 use super::{
     command::{Direction, EditorCommand, InsertCommand, NormalCommand, VisualCommand},
     terminal::{Position, Size, Terminal},
@@ -29,9 +30,26 @@ pub struct Location {
 }
 
 impl View {
+    // Start Region: Initialize
+    pub fn new(margin_bottom: usize) -> Self {
+        let Size { height, width } = Terminal::size().unwrap_or_default();
+        Self {
+            text_location: Location::default(),
+            scroll_offset: Position::default(),
+            buffer: Buffer::default(),
+            needs_redraw: true,
+            size: Size {
+                height: height.saturating_sub(margin_bottom),
+                width,
+            },
+        }
+    }
+    // End Region: Initialize
+
     // Start Region: Handle Editor Command
     pub fn handle_command(&mut self, command: EditorCommand) {
         match command {
+            EditorCommand::Save => self.save(),
             EditorCommand::Resize(size) => self.resize(size),
             EditorCommand::Normal(normal_command) => self.handle_normal_command(normal_command),
             EditorCommand::Visual(visual_command) => self.handle_visual_command(visual_command),
@@ -69,11 +87,24 @@ impl View {
 
     // Start Region: Misc
 
+    pub fn get_status(&self) -> DocumentStatus {
+        DocumentStatus {
+            total_lines: self.buffer.height(),
+            current_line_index: self.text_location.line_index,
+            is_modified: self.buffer.dirty,
+            file_name: self.buffer.file_name.clone(),
+        }
+    }
+
     pub fn load(&mut self, file_name: &str) {
         if let Ok(buffer) = Buffer::load(file_name) {
             self.buffer = buffer;
             self.needs_redraw = true;
         }
+    }
+
+    pub fn save(&mut self) {
+        let _ = self.buffer.save();
     }
 
     fn resize(&mut self, to: Size) {
@@ -343,16 +374,4 @@ impl View {
     }
 
     // End Region: Text Mutation
-}
-
-impl Default for View {
-    fn default() -> Self {
-        Self {
-            text_location: Location::default(),
-            scroll_offset: Position::default(),
-            buffer: Buffer::default(),
-            needs_redraw: true,
-            size: Terminal::size().unwrap_or_default(),
-        }
-    }
 }

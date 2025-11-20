@@ -6,17 +6,28 @@ use std::{
 };
 
 mod command;
+mod statusbar;
 mod terminal;
 mod view;
 
 use command::{EditorCommand, Mode};
+use statusbar::StatusBar;
 use terminal::Terminal;
 use view::View;
+
+#[derive(Default, Eq, PartialEq, Debug)]
+pub struct DocumentStatus {
+    total_lines: usize,
+    current_line_index: usize,
+    is_modified: bool,
+    file_name: Option<String>,
+}
 
 pub struct Editor {
     should_quit: bool,
     mode: Mode,
     view: View,
+    status_bar: StatusBar,
 }
 
 impl Editor {
@@ -28,7 +39,7 @@ impl Editor {
         }));
         Terminal::initialize()?;
 
-        let mut view = View::default();
+        let mut view = View::new(2);
         let args: Vec<String> = env::args().collect();
         if let Some(file_name) = args.get(1) {
             view.load(file_name);
@@ -38,6 +49,7 @@ impl Editor {
             should_quit: false,
             mode: Mode::Normal,
             view,
+            status_bar: StatusBar::new(1),
         })
     }
 
@@ -49,7 +61,11 @@ impl Editor {
             }
 
             match read() {
-                Ok(event) => self.evaluate_event(event),
+                Ok(event) => {
+                    self.evaluate_event(event);
+                    let status = self.view.get_status();
+                    self.status_bar.update_status(status);
+                }
                 Err(err) => {
                     #[cfg(debug_assertions)]
                     {
@@ -63,6 +79,7 @@ impl Editor {
     fn refresh_screen(&mut self) {
         let _ = Terminal::hide_caret();
         self.view.render();
+        self.status_bar.render();
         let _ = Terminal::move_caret_to(self.view.caret_position());
         let _ = Terminal::show_caret();
         let _ = Terminal::execute();
@@ -81,7 +98,12 @@ impl Editor {
                     EditorCommand::Quit => self.should_quit = true,
                     EditorCommand::Esc => self.mode = Mode::Normal,
                     EditorCommand::Change(mode) => self.mode = mode,
-                    _ => self.view.handle_command(command),
+                    _ => {
+                        self.view.handle_command(command);
+                        if let EditorCommand::Resize(size) = command {
+                            self.status_bar.resize(size);
+                        }
+                    }
                 },
                 Err(_) => {
                     // Silently ignore all unwanted key presses

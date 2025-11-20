@@ -1,10 +1,15 @@
-use std::{fs::read_to_string, io::Error};
+use std::{
+    fs::{File, read_to_string},
+    io::{Error, Write},
+};
 
 use super::{Location, line::Line};
 
 #[derive(Default, Clone)]
 pub struct Buffer {
+    pub file_name: Option<String>,
     pub lines: Vec<Line>,
+    pub dirty: bool,
 }
 
 impl Buffer {
@@ -15,8 +20,10 @@ impl Buffer {
 
         if at.line_index == self.lines.len() {
             self.lines.push(Line::from(&character.to_string()));
+            self.dirty = true;
         } else if let Some(line) = self.lines.get_mut(at.line_index) {
             line.insert_char(character, at.grapheme_index);
+            self.dirty = true;
         }
     }
 
@@ -24,9 +31,11 @@ impl Buffer {
         let Location { line_index, .. } = at;
         if line_index == self.height() {
             self.lines.push(Line::from(""));
+            self.dirty = true;
         } else if let Some(line) = self.lines.get_mut(line_index) {
             let new = line.split(at.grapheme_index);
             self.lines.insert(at.line_index.saturating_add(1), new);
+            self.dirty = true;
         }
     }
 
@@ -39,8 +48,10 @@ impl Buffer {
 
                 #[allow(clippy::indexing_slicing)]
                 self.lines[at.line_index].append(next_line);
+                self.dirty = true;
             } else if at.grapheme_index < line.grapheme_count() {
                 self.lines[at.line_index].delete(at.grapheme_index);
+                self.dirty = true;
             }
         }
     }
@@ -53,7 +64,22 @@ impl Buffer {
         for value in contents.lines() {
             lines.push(Line::from(value));
         }
-        Ok(Self { lines })
+        Ok(Self {
+            lines,
+            file_name: Some(file_name.to_string()),
+            dirty: false,
+        })
+    }
+
+    pub fn save(&mut self) -> Result<(), Error> {
+        if let Some(file_name) = &self.file_name {
+            let mut file = File::create(file_name)?;
+            for line in &self.lines {
+                writeln!(file, "{line}")?;
+            }
+            self.dirty = false;
+        }
+        Ok(())
     }
 
     pub fn is_empty(&self) -> bool {
