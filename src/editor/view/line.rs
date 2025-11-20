@@ -22,6 +22,12 @@ impl Line {
         self.fragments = Self::str_to_fragments(&updated);
     }
 
+    pub fn split(&mut self, split_index: usize) -> Self {
+        Self {
+            fragments: self.fragments.split_off(split_index),
+        }
+    }
+
     fn str_to_fragments(line_str: &str) -> Vec<TextFragment> {
         line_str
             .graphemes(true)

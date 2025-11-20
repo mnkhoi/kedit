@@ -7,3 +7,6 @@ edition = "2024"
 crossterm = "0.29.0"
 unicode-segmentation = "1.12.0"
 unicode-width = "0.2"
+
+# For later iteration
+# ropey = "=2.0.0-beta.1"

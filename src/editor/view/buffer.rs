@@ -8,15 +8,6 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    // pub fn push(&mut self, token: &str) -> Result<(), Error> {
-    //     self.lines.push(token.to_string());
-    //     Ok(())
-    // }
-    //
-    // pub fn size(&self) -> usize {
-    //     self.lines.len()
-    // }
-    //
     pub fn insert_char(&mut self, character: char, at: Location) {
         if at.line_index > self.lines.len() {
             return;
@@ -26,6 +17,16 @@ impl Buffer {
             self.lines.push(Line::from(&character.to_string()));
         } else if let Some(line) = self.lines.get_mut(at.line_index) {
             line.insert_char(character, at.grapheme_index);
+        }
+    }
+
+    pub fn insert_newline(&mut self, at: Location) {
+        let Location { line_index, .. } = at;
+        if line_index == self.height() {
+            self.lines.push(Line::from(""));
+        } else if let Some(line) = self.lines.get_mut(line_index) {
+            let new = line.split(at.grapheme_index);
+            self.lines.insert(at.line_index.saturating_add(1), new);
         }
     }
 

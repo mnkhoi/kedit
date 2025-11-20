@@ -62,6 +62,7 @@ impl View {
             InsertCommand::Backspace => {
                 self.backspace();
             }
+            InsertCommand::Enter => self.insert_newline(),
         }
     }
     // End Region: Handle: Editor Command
@@ -320,6 +321,12 @@ impl View {
             self.move_text_location(&Direction::Right);
         }
 
+        self.needs_redraw = true;
+    }
+
+    fn insert_newline(&mut self) {
+        self.buffer.insert_newline(self.text_location);
+        self.move_text_location(&Direction::Right);
         self.needs_redraw = true;
     }
 

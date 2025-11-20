@@ -19,9 +19,3 @@ pub struct TextFragment {
     pub rendered_width: GraphemeWidth,
     pub replacement: Option<char>,
 }
-
-impl TextFragment {
-    pub fn len(&self) -> usize {
-        self.grapheme.len()
-    }
-}
