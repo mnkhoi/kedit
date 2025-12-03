@@ -3,8 +3,9 @@ use super::{
     Mode, NAME, VERSION,
     command::{Direction, EditorCommand, InsertCommand, NormalCommand, VisualCommand},
     terminal::{Position, Size, Terminal},
+    uicomponent::UIComponent,
 };
-use std::cmp::min;
+use std::{cmp::min, io::Error};
 
 mod buffer;
 mod line;
@@ -13,13 +14,13 @@ mod text_fragment;
 use buffer::Buffer;
 use line::Line;
 
+#[derive(Default)]
 pub struct View {
     scroll_offset: Position,
     text_location: Location,
     buffer: Buffer,
     needs_redraw: bool,
     size: Size,
-    margin_bottom: usize,
 }
 
 #[derive(Clone, Copy, Default)]
@@ -29,28 +30,10 @@ pub struct Location {
 }
 
 impl View {
-    // Start Region: Initialize
-    pub fn new(margin_bottom: usize) -> Self {
-        let Size { height, width } = Terminal::size().unwrap_or_default();
-        Self {
-            text_location: Location::default(),
-            scroll_offset: Position::default(),
-            margin_bottom,
-            buffer: Buffer::default(),
-            needs_redraw: true,
-            size: Size {
-                height: height.saturating_sub(margin_bottom),
-                width,
-            },
-        }
-    }
-    // End Region: Initialize
-
     // Start Region: Handle Editor Command
     pub fn handle_command(&mut self, command: EditorCommand) {
         match command {
             EditorCommand::Save => self.save(),
-            EditorCommand::Resize(size) => self.resize(size),
             EditorCommand::Normal(normal_command) => self.handle_normal_command(normal_command),
             EditorCommand::Visual(visual_command) => self.handle_visual_command(visual_command),
             EditorCommand::Insert(insert_command) => self.handle_insert_command(insert_command),
@@ -100,21 +83,12 @@ impl View {
     pub fn load(&mut self, file_name: &str) {
         if let Ok(buffer) = Buffer::load(file_name) {
             self.buffer = buffer;
-            self.needs_redraw = true;
+            self.mark_redraw(true);
         }
     }
 
     pub fn save(&mut self) {
         let _ = self.buffer.save();
-    }
-
-    fn resize(&mut self, to: Size) {
-        self.size = Size {
-            width: to.width,
-            height: to.height.saturating_sub(self.margin_bottom),
-        };
-        self.scroll_text_location_into_view();
-        self.needs_redraw = true;
     }
 
     fn build_welcome_message(width: usize) -> String {
@@ -134,38 +108,6 @@ impl View {
     // End Region: Misc
 
     // Start Region: Rendering
-
-    pub fn render(&mut self) {
-        if !self.needs_redraw || self.size.height == 0 {
-            return;
-        }
-
-        let Size { height, width } = self.size;
-
-        if height == 0 || width == 0 {
-            return;
-        }
-
-        #[allow(clippy::integer_division)]
-        let vertical_center = height / 3;
-
-        let top = self.scroll_offset.row;
-
-        for row in 0..height {
-            if let Some(line) = self.buffer.lines.get(row.saturating_add(top)) {
-                let left = self.scroll_offset.col;
-                let right = self.scroll_offset.col.saturating_add(width);
-
-                let visible = line.get_visible_graphemes(left..right);
-                Self::render_line(row, &visible)
-            } else if row == vertical_center && self.buffer.is_empty() {
-                Self::render_line(row, &Self::build_welcome_message(width));
-            } else {
-                Self::render_line(row, "~");
-            }
-        }
-        self.needs_redraw = false;
-    }
 
     pub fn render_line(at: usize, line_text: &str) {
         let result = Terminal::print_row(at, line_text);
@@ -369,4 +311,42 @@ impl View {
     }
 
     // End Region: Text Mutation
+}
+
+impl UIComponent for View {
+    fn mark_redraw(&mut self, value: bool) {
+        self.needs_redraw = value;
+    }
+
+    fn needs_redraw(&self) -> bool {
+        self.needs_redraw
+    }
+
+    fn set_size(&mut self, size: Size) {
+        self.size = size;
+    }
+
+    fn draw(&mut self, origin_y: usize) -> Result<(), Error> {
+        let Size { height, width } = self.size;
+        let end_y = origin_y.saturating_add(height);
+
+        #[allow(clippy::integer_division)]
+        let top_third = height / 3;
+        let scroll_top = self.scroll_offset.row;
+        for current_row in origin_y..end_y {
+            let line_idx = current_row
+                .saturating_sub(origin_y)
+                .saturating_add(scroll_top);
+            if let Some(line) = self.buffer.lines.get(line_idx) {
+                let left = self.scroll_offset.col;
+                let right = self.scroll_offset.col.saturating_add(width);
+                Self::render_line(current_row, &line.get_visible_graphemes(left..right));
+            } else if current_row == top_third && self.buffer.is_empty() {
+                Self::render_line(current_row, &Self::build_welcome_message(width));
+            } else {
+                Self::render_line(current_row, "~");
+            }
+        }
+        Ok(())
+    }
 }
