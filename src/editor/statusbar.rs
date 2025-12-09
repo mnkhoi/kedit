@@ -18,12 +18,12 @@ impl StatusBar {
         }
 
         self.current_status = updated_status;
-        self.mark_redraw(true);
+        self.set_needs_redraw(true);
     }
 }
 
 impl UIComponent for StatusBar {
-    fn mark_redraw(&mut self, value: bool) {
+    fn set_needs_redraw(&mut self, value: bool) {
         self.needs_redraw = value;
     }
 
