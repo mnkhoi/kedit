@@ -15,4 +15,4 @@ Learning project to write a text editor and its internal data structure
 I am currently following this tutorial [Hecto](https://philippflenker.com/hecto/)
 
 > [!NOTE]
-> Finish to Assignment 14
+> Finish to Assignment 24

@@ -6,6 +6,7 @@ use std::{
 };
 
 mod command;
+mod commandbar;
 mod documentstatus;
 mod fileinfo;
 mod messagebar;
