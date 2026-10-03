@@ -1,3 +1,4 @@
+use super::{Position, Size};
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::style::{Attribute, Print};
 use crossterm::terminal::{
@@ -6,27 +7,6 @@ use crossterm::terminal::{
 };
 use crossterm::{Command, queue};
 use std::io::{Error, Write, stdout};
-
-#[derive(Debug, Clone, Copy, Default, Eq, PartialEq)]
-pub struct Size {
-    pub height: usize,
-    pub width: usize,
-}
-
-#[derive(Clone, Copy, Default)]
-pub struct Position {
-    pub col: usize,
-    pub row: usize,
-}
-
-impl Position {
-    pub const fn saturating_sub(&self, other: Self) -> Self {
-        Self {
-            row: self.row.saturating_sub(other.row),
-            col: self.col.saturating_sub(other.col),
-        }
-    }
-}
 
 #[derive(Default, Clone, Copy)]
 pub struct Terminal;

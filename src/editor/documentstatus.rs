@@ -5,6 +5,7 @@ pub struct DocumentStatus {
     pub total_lines: usize,
     pub current_line_index: usize,
     pub is_modified: bool,
+    pub is_saving: bool,
     pub file_name: String,
     pub mode: Mode,
 }

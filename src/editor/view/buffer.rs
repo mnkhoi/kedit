@@ -3,15 +3,14 @@ use std::{
     io::{Error, Write},
 };
 
-use super::{Location, line::Line};
-
-use crate::editor::fileinfo::FileInfo;
+use super::{FileInfo, Line, Location};
 
 #[derive(Default, Clone)]
 pub struct Buffer {
     pub file_info: FileInfo,
     pub lines: Vec<Line>,
     pub dirty: bool,
+    pub saving: bool,
 }
 
 impl Buffer {
@@ -70,10 +69,25 @@ impl Buffer {
             lines,
             file_info: FileInfo::from(file_name),
             dirty: false,
+            saving: false,
         })
     }
 
+    pub fn save_as(&mut self, file_name: &str) -> Result<(), Error> {
+        let file_info = FileInfo::from(file_name);
+        self.save_to_file(&file_info)?;
+        self.file_info = file_info;
+        self.dirty = false;
+        Ok(())
+    }
+
     pub fn save(&mut self) -> Result<(), Error> {
+        self.save_to_file(&self.file_info)?;
+        self.dirty = false;
+        Ok(())
+    }
+
+    fn save_to_file(&self, file_info: &FileInfo) -> Result<(), Error> {
         if let Some(path) = &self.file_info.path {
             let mut file = File::create(path)?;
             for line in &self.lines {
@@ -82,6 +96,10 @@ impl Buffer {
             self.dirty = false;
         }
         Ok(())
+    }
+
+    pub const fn is_file_loaded(&self) -> bool {
+        self.file_info.has_path()
     }
 
     pub fn is_empty(&self) -> bool {

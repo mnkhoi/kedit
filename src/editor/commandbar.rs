@@ -1,24 +1,22 @@
 use std::io::Error;
 
-use super::{
-    terminal::{Size, Terminal},
-    uicomponent::UIComponent,
-};
+use super::{Line, Size, Terminal, uicomponent::UIComponent};
 
 #[derive(Default)]
 pub struct CommandBar {
-    path_str: String,
+    prompt: String,
+    value: Line,
     needs_redraw: bool,
     size: Size,
 }
 
 impl CommandBar {
     pub fn update_path(&mut self, new_path: String) {
-        self.path_str = new_path;
+        self.prompt = new_path;
         self.set_needs_redraw(true);
     }
     pub fn clear(&mut self) {
-        self.path_str = String::from("");
+        self.prompt = String::from("");
         self.set_needs_redraw(true);
     }
 }
@@ -39,7 +37,7 @@ impl UIComponent for CommandBar {
     fn draw(&mut self, origin_y: usize) -> Result<(), Error> {
         let message = format!(
             "Save as: {path:.remain$}",
-            path = &self.path_str,
+            path = &self.prompt,
             remain = self.size.width.saturating_sub(9)
         );
         Terminal::print_row(origin_y, &message)

@@ -1,8 +1,4 @@
-use super::{
-    DocumentStatus,
-    terminal::{Size, Terminal},
-    uicomponent::UIComponent,
-};
+use super::{DocumentStatus, Size, Terminal, uicomponent::UIComponent};
 
 #[derive(Default)]
 pub struct StatusBar {
@@ -35,7 +31,7 @@ impl UIComponent for StatusBar {
         self.size = size;
     }
 
-    fn draw(&mut self, origin_y: usize) -> Result<(), std::io::Error> {
+    fn draw(&mut self, origin_row: usize) -> Result<(), std::io::Error> {
         let line_count = self.current_status.line_count_to_string();
         let modified_indicator = self.current_status.modified_indicator_to_string();
         let beginning = format!(
@@ -53,7 +49,7 @@ impl UIComponent for StatusBar {
             String::new()
         };
 
-        let _ = Terminal::print_inverted_row(origin_y, &to_print);
+        let _ = Terminal::print_inverted_row(origin_row, &to_print);
 
         Ok(())
     }

@@ -1,6 +1,6 @@
 use crossterm::event::{Event, KeyCode, KeyEvent, KeyModifiers};
 
-use super::terminal::Size;
+use super::Size;
 
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub enum Mode {
@@ -55,6 +55,7 @@ pub enum EditorCommand {
     Resize(Size),
     Change(Mode),
     Save,
+    Dismiss,
     Esc,
     Quit,
 }
@@ -70,7 +71,18 @@ impl EditorCommand {
 
                 Ok(Self::Resize(Size { height, width }))
             }
-            (Event::Key(KeyEvent { code, .. }), _) if code.is_esc() => Ok(Self::Esc),
+            (
+                Event::Key(KeyEvent {
+                    code, modifiers, ..
+                }),
+                _,
+            ) if code.is_esc() => {
+                if *modifiers == KeyModifiers::NONE {
+                    Ok(Self::Dismiss)
+                } else {
+                    Ok(Self::Esc)
+                }
+            }
             (_, Mode::Normal) => Self::from_normal_command(event),
             (_, Mode::Visual) => Self::from_visual_command(event),
             (_, Mode::Insert) => Self::from_insert_command(event),
