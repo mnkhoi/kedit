@@ -8,11 +8,9 @@ use std::{cmp::min, io::Error};
 
 mod buffer;
 mod fileinfo;
-mod text_fragment;
 
 use buffer::Buffer;
 use fileinfo::FileInfo;
-use line::Line;
 
 #[derive(Default)]
 pub struct View {
@@ -33,7 +31,9 @@ impl View {
     // Start Region: Handle Editor Command
     pub fn handle_command(&mut self, command: EditorCommand) {
         match command {
-            EditorCommand::Save => self.save(),
+            EditorCommand::Save => {
+                let _ = self.save();
+            }
             EditorCommand::Normal(normal_command) => self.handle_normal_command(normal_command),
             EditorCommand::Visual(visual_command) => self.handle_visual_command(visual_command),
             EditorCommand::Insert(insert_command) => self.handle_insert_command(insert_command),
@@ -92,8 +92,8 @@ impl View {
         }
     }
 
-    pub fn save(&mut self) {
-        let _ = self.buffer.save();
+    pub fn save(&mut self) -> Result<(), Error> {
+        self.buffer.save()
     }
 
     pub fn save_as(&mut self, file_name: &str) -> Result<(), Error> {

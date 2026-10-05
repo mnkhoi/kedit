@@ -1,6 +1,6 @@
-use std::io::Error;
+use std::{cmp::min, io::Error};
 
-use super::{Line, Size, Terminal, uicomponent::UIComponent};
+use super::{Line, Size, Terminal, command::InsertCommand, uicomponent::UIComponent};
 
 #[derive(Default)]
 pub struct CommandBar {
@@ -11,13 +11,28 @@ pub struct CommandBar {
 }
 
 impl CommandBar {
-    pub fn update_path(&mut self, new_path: String) {
-        self.prompt = new_path;
+    pub fn handle_edit_command(&mut self, command: InsertCommand) {
+        match command {
+            InsertCommand::Char(character) => self.value.append_char(character),
+            InsertCommand::Delete | InsertCommand::Enter => {}
+            InsertCommand::Backspace => self.value.delete_last(),
+        }
         self.set_needs_redraw(true);
     }
-    pub fn clear(&mut self) {
-        self.prompt = String::from("");
-        self.set_needs_redraw(true);
+
+    pub fn caret_position_col(&self) -> usize {
+        let max_width = self
+            .prompt
+            .len()
+            .saturating_add(self.value.grapheme_count());
+        min(max_width, self.size.width)
+    }
+
+    pub fn value(&self) -> String {
+        self.value.to_string()
+    }
+    pub fn set_prompt(&mut self, prompt: &str) {
+        self.prompt = prompt.to_string();
     }
 }
 
@@ -35,11 +50,20 @@ impl UIComponent for CommandBar {
     }
 
     fn draw(&mut self, origin_y: usize) -> Result<(), Error> {
+        let area_for_value = self.size.width.saturating_sub(self.prompt.len());
+        let value_end = self.value.width();
+        let value_start = value_end.saturating_sub(area_for_value);
+
         let message = format!(
-            "Save as: {path:.remain$}",
-            path = &self.prompt,
-            remain = self.size.width.saturating_sub(9)
+            "{}{}",
+            self.prompt,
+            self.value.get_visible_graphemes(value_start..value_end)
         );
-        Terminal::print_row(origin_y, &message)
+        let to_print = if message.len() <= self.size.width {
+            message
+        } else {
+            String::new()
+        };
+        Terminal::print_row(origin_y, &to_print)
     }
 }

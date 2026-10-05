@@ -8,7 +8,6 @@ use std::{
 mod command;
 mod commandbar;
 mod documentstatus;
-mod fileinfo;
 mod line;
 mod messagebar;
 mod position;
@@ -18,7 +17,7 @@ mod terminal;
 mod uicomponent;
 mod view;
 
-use command::{EditorCommand, Mode};
+use command::{EditorCommand, InsertCommand, Mode};
 use commandbar::CommandBar;
 use documentstatus::DocumentStatus;
 use line::Line;
@@ -33,6 +32,8 @@ use view::View;
 pub const NAME: &str = env!("CARGO_PKG_NAME");
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+const QUIT_TIMES: u8 = 2;
+
 #[derive(Default)]
 pub struct Editor {
     should_quit: bool,
@@ -43,6 +44,7 @@ pub struct Editor {
     command_bar: Option<CommandBar>,
     terminal_size: Size,
     title: String,
+    quit_times: u8,
 }
 
 impl Editor {
@@ -65,7 +67,7 @@ impl Editor {
 
         editor
             .message_bar
-            .update_message("HELP: Ctrl-S = save | Ctrl-Q = quit".to_string());
+            .update_message("HELP: Ctrl-S = save | Ctrl-Q = quit");
         editor.refresh_status();
 
         Ok(editor)
@@ -188,17 +190,18 @@ impl Editor {
                             self.handle_save();
                         }
                     }
-                    EditorCommand::Dismiss => {
+                    EditorCommand::Esc => {
                         if self.command_bar.is_some() {
                             self.dismiss_prompt();
                             self.message_bar.update_message("Save aborted.");
+                        } else {
+                            self.mode = Mode::Normal;
                         }
                     }
-                    EditorCommand::Esc => self.mode = Mode::Normal,
                     EditorCommand::Change(mode) => self.mode = mode,
                     EditorCommand::Insert(insert_command) => {
                         if let Some(command_bar) = &mut self.command_bar {
-                            if matches!(insert_command, InsertCommmand::Enter) {
+                            if matches!(insert_command, InsertCommand::Enter) {
                                 let file_name = command_bar.value();
                                 self.dismiss_prompt();
                                 self.save(Some(&file_name));
@@ -209,7 +212,7 @@ impl Editor {
                             self.view.handle_command(command);
                         }
                     }
-                    EditorCommand::Normal(normal_command) => {
+                    EditorCommand::Normal(_) => {
                         if self.command_bar.is_none() {
                             self.view.handle_command(command);
                         }
@@ -266,6 +269,18 @@ impl Editor {
             self.message_bar.update_message("File saved successfully.");
         } else {
             self.message_bar.update_message("Error writing file!");
+        }
+    }
+
+    fn handle_quit(&mut self) {
+        if !self.view.get_status().is_modified || self.quit_times + 1 == QUIT_TIMES {
+            self.should_quit = true;
+        } else if self.view.get_status().is_modified {
+            self.message_bar.update_message(&format!(
+                "WARNING! File has unsaved changes. Press Ctrl-Q {} more times to quit.",
+                QUIT_TIMES - self.quit_times - 1
+            ));
+            self.quit_times += 1;
         }
     }
 }

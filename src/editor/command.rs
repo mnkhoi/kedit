@@ -55,7 +55,6 @@ pub enum EditorCommand {
     Resize(Size),
     Change(Mode),
     Save,
-    Dismiss,
     Esc,
     Quit,
 }
@@ -76,13 +75,7 @@ impl EditorCommand {
                     code, modifiers, ..
                 }),
                 _,
-            ) if code.is_esc() => {
-                if *modifiers == KeyModifiers::NONE {
-                    Ok(Self::Dismiss)
-                } else {
-                    Ok(Self::Esc)
-                }
-            }
+            ) if code.is_esc() => Ok(Self::Esc),
             (_, Mode::Normal) => Self::from_normal_command(event),
             (_, Mode::Visual) => Self::from_visual_command(event),
             (_, Mode::Insert) => Self::from_insert_command(event),
