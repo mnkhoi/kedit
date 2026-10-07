@@ -51,7 +51,7 @@ impl Line {
         line_str
             .grapheme_indices(true)
             .map(|(byte_idx, grapheme)| {
-                let (replacement, rendered_width) = Self::replacement_character(grapheme)
+                let (replacement, rendered_width) = Self::get_replacement_character(grapheme)
                     .map_or_else(
                         || {
                             let unicode_width = grapheme.width();
@@ -180,6 +180,10 @@ impl Line {
         } else {
             Self::default()
         }
+    }
+
+    pub fn find(&self, word: &str) -> Option<usize> {
+        lself.string.find(word)
     }
 }
 

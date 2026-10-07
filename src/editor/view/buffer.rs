@@ -108,4 +108,23 @@ impl Buffer {
     pub fn height(&self) -> usize {
         self.lines.len()
     }
+
+    pub fn find(&self, word: &str, start_location: &Location) -> Option<Location> {
+        self.lines
+            .iter()
+            .cycle()
+            .skip(start_location.line_index)
+            .take(self.lines.len())
+            .enumerate()
+            .find_map(|(line_idx, line)| {
+                if let Some(grapheme_idx) = line.find(word) {
+                    Some(Location {
+                        grapheme_index: grapheme_idx,
+                        line_index: line_idx,
+                    })
+                } else {
+                    None
+                }
+            })
+    }
 }

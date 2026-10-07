@@ -214,6 +214,7 @@ impl Editor {
                                 self.dismiss_prompt();
                             } else {
                                 command_bar.handle_edit_command(insert_command);
+                                if command_bar.is_prompt("Search (Esc to cancel): ") {}
                             }
                         } else {
                             self.view.handle_command(command);

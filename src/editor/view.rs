@@ -320,6 +320,14 @@ impl View {
     }
 
     // End Region: Text Mutation
+
+    // Start Region: Search
+
+    pub fn handle_search(&self, word: &str) {
+        if let Some(text_location) = self.buffer.find(word, &self.text_location) {}
+    }
+
+    // End Region: Search
 }
 
 impl UIComponent for View {
