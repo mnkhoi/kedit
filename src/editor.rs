@@ -67,7 +67,7 @@ impl Editor {
 
         editor
             .message_bar
-            .update_message("HELP: Ctrl-S = save | Ctrl-Q = quit");
+            .update_message("HELP: Ctrl-F = find | Ctrl-S = save | Ctrl-Q = quit");
         editor.refresh_status();
 
         Ok(editor)
@@ -190,6 +190,11 @@ impl Editor {
                             self.handle_save();
                         }
                     }
+                    EditorCommand::Search => {
+                        if self.command_bar.is_none() {
+                            self.handle_search();
+                        }
+                    }
                     EditorCommand::Esc => {
                         if self.command_bar.is_some() {
                             self.dismiss_prompt();
@@ -202,9 +207,11 @@ impl Editor {
                     EditorCommand::Insert(insert_command) => {
                         if let Some(command_bar) = &mut self.command_bar {
                             if matches!(insert_command, InsertCommand::Enter) {
-                                let file_name = command_bar.value();
+                                let value = command_bar.value();
+                                if command_bar.is_prompt("Save as: ") {
+                                    self.save(Some(&value));
+                                }
                                 self.dismiss_prompt();
-                                self.save(Some(&file_name));
                             } else {
                                 command_bar.handle_edit_command(insert_command);
                             }
@@ -240,9 +247,10 @@ impl Editor {
         self.command_bar = None;
         self.message_bar.set_needs_redraw(true);
     }
-    fn show_prompt(&mut self) {
+
+    fn show_prompt(&mut self, prompt: &str) {
         let mut command_bar = CommandBar::default();
-        command_bar.set_prompt("Save as: ");
+        command_bar.set_prompt(prompt);
         command_bar.resize(Size {
             height: 1,
             width: self.terminal_size.width,
@@ -251,11 +259,23 @@ impl Editor {
         self.command_bar = Some(command_bar);
     }
 
+    fn show_search(&mut self) {
+        self.show_prompt("Search: ");
+    }
+
+    fn handle_search(&mut self) {
+        self.show_search();
+    }
+
+    fn show_save_as(&mut self) {
+        self.show_prompt("Save as: ");
+    }
+
     fn handle_save(&mut self) {
         if self.view.is_file_loaded() {
             self.save(None);
         } else {
-            self.show_prompt();
+            self.show_save_as();
         }
     }
 
