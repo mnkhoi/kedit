@@ -23,17 +23,22 @@ pub struct TextFragment {
     pub grapheme: String,
     pub rendered_width: GraphemeWidth,
     pub replacement: Option<char>,
+    pub start_byte_idx: usize,
 }
 
 #[derive(Clone, Default)]
 pub struct Line {
     fragments: Vec<TextFragment>,
+    string: String,
 }
 
 impl Line {
     pub fn from(line_str: &str) -> Self {
         let fragments = Self::str_to_fragments(line_str);
-        Self { fragments }
+        Self {
+            fragments,
+            string: String::from(line_str),
+        }
     }
 
     pub fn append(&mut self, other: Self) {
@@ -42,16 +47,10 @@ impl Line {
         self.fragments = Self::str_to_fragments(&updated);
     }
 
-    pub fn split(&mut self, split_index: usize) -> Self {
-        Self {
-            fragments: self.fragments.split_off(split_index),
-        }
-    }
-
     fn str_to_fragments(line_str: &str) -> Vec<TextFragment> {
         line_str
-            .graphemes(true)
-            .map(|grapheme| {
+            .grapheme_indices(true)
+            .map(|(byte_idx, grapheme)| {
                 let (replacement, rendered_width) = Self::replacement_character(grapheme)
                     .map_or_else(
                         || {
@@ -69,12 +68,17 @@ impl Line {
                     grapheme: grapheme.to_string(),
                     rendered_width,
                     replacement,
+                    start_byte_idx: byte_idx,
                 }
             })
             .collect()
     }
 
-    fn replacement_character(for_str: &str) -> Option<char> {
+    fn rebuild_fragments(&mut self) {
+        self.fragments = Self::str_to_fragments(&self.string)
+    }
+
+    fn get_replacement_character(for_str: &str) -> Option<char> {
         let width = for_str.width();
         match for_str {
             " " => None,
@@ -139,18 +143,12 @@ impl Line {
     }
 
     pub fn insert_char(&mut self, character: char, grapheme_index: usize) {
-        let mut result = String::new();
-
-        for (index, fragment) in self.fragments.iter().enumerate() {
-            if index == grapheme_index {
-                result.push(character);
-            }
-            result.push_str(&fragment.grapheme);
+        if let Some(fragment) = self.fragments.get(grapheme_index) {
+            self.string.insert(fragment.start_byte_idx, character);
+        } else {
+            self.string.push(character);
         }
-        if grapheme_index >= self.fragments.len() {
-            result.push(character);
-        }
-        self.fragments = Self::str_to_fragments(&result);
+        self.rebuild_fragments();
     }
 
     pub fn append_char(&mut self, character: char) {
@@ -158,28 +156,35 @@ impl Line {
     }
 
     pub fn delete(&mut self, grapheme_index: usize) {
-        let mut result = String::new();
-        for (index, fragment) in self.fragments.iter().enumerate() {
-            if index == grapheme_index {
-                continue;
-            }
-            result.push_str(&fragment.grapheme);
+        if let Some(fragment) = self.fragments.get(grapheme_index) {
+            let start = fragment.start_byte_idx;
+            let end = fragment
+                .start_byte_idx
+                .saturating_add(fragment.grapheme.len());
+
+            self.string.drain(start..end);
+
+            self.rebuild_fragments();
         }
-        self.fragments = Self::str_to_fragments(&result);
     }
 
     pub fn delete_last(&mut self) {
         self.delete(self.grapheme_count().saturating_sub(1));
     }
+
+    pub fn split(&mut self, split_index: usize) -> Self {
+        if let Some(fragment) = self.fragments.get(split_index) {
+            let remainder = self.string.split_off(fragment.start_byte_idx);
+            self.rebuild_fragments();
+            Self::from(&remainder)
+        } else {
+            Self::default()
+        }
+    }
 }
 
 impl fmt::Display for Line {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        let result: String = self
-            .fragments
-            .iter()
-            .map(|fragment| fragment.grapheme.clone())
-            .collect();
-        write!(formatter, "{result}")
+        write!(formatter, "{}", self.string)
     }
 }
