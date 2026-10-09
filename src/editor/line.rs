@@ -182,8 +182,19 @@ impl Line {
         }
     }
 
+    fn byte_idx_to_grapheme_idx(&self, byte_idx: usize) -> usize {
+        for (grapheme_idx, fragment) in self.fragments.iter().enumerate() {
+            if fragment.start_byte_idx >= byte_idx {
+                return grapheme_idx;
+            }
+        }
+        0
+    }
+
     pub fn find(&self, word: &str) -> Option<usize> {
-        lself.string.find(word)
+        self.string
+            .find(word)
+            .map(|byte_idx| self.byte_idx_to_grapheme_idx(byte_idx))
     }
 }
 

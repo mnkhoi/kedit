@@ -34,6 +34,14 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const QUIT_TIMES: u8 = 2;
 
+#[derive(Default, Eq, PartialEq)]
+pub enum PromptType {
+    #[default]
+    None,
+    Save,
+    Search,
+}
+
 #[derive(Default)]
 pub struct Editor {
     should_quit: bool,
@@ -41,7 +49,8 @@ pub struct Editor {
     view: View,
     status_bar: StatusBar,
     message_bar: MessageBar,
-    command_bar: Option<CommandBar>,
+    command_bar: CommandBar,
+    prompt_type: PromptType,
     terminal_size: Size,
     title: String,
     quit_times: u8,
@@ -114,12 +123,10 @@ impl Editor {
             width: size.width,
         });
 
-        if let Some(command_bar) = &mut self.command_bar {
-            command_bar.resize(Size {
-                height: 1,
-                width: size.width,
-            });
-        }
+        self.command_bar.resize(Size {
+            height: 1,
+            width: size.width,
+        });
     }
 
     fn refresh_status(&mut self) {
@@ -187,12 +194,12 @@ impl Editor {
                     }
                     EditorCommand::Save => {
                         if self.command_bar.is_none() {
-                            self.handle_save();
+                            self.view.enter_search();
                         }
                     }
                     EditorCommand::Search => {
                         if self.command_bar.is_none() {
-                            self.handle_search();
+                            self.handle_save();
                         }
                     }
                     EditorCommand::Esc => {
@@ -258,6 +265,17 @@ impl Editor {
         });
         command_bar.set_needs_redraw(true);
         self.command_bar = Some(command_bar);
+    }
+
+    fn set_prompt(&mut self, prompt_type: PromptType) {
+        match prompt_type {
+            PromptType::None => self.message_bar.set_needs_redraw(true),
+            PromptType::Save => self.command_bar.set_prompt("Save as: "),
+            PromptType::Search => {
+                self.view.enter_search();
+                self.command_bar.set_prompt("Search (Esc to cancel): ");
+            }
+        }
     }
 
     fn show_search(&mut self) {
