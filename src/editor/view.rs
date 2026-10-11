@@ -1,7 +1,7 @@
 use super::DocumentStatus;
 use super::{
     Line, Mode, NAME, Position, Size, Terminal, VERSION,
-    command::{Direction, EditorCommand, InsertCommand, NormalCommand, VisualCommand},
+    command::{Direction, InsertCommand, NormalCommand},
     uicomponent::UIComponent,
 };
 use std::{cmp::min, io::Error};
@@ -34,34 +34,21 @@ pub struct Location {
 
 impl View {
     // Start Region: Handle Editor Command
-    pub fn handle_command(&mut self, command: EditorCommand) {
-        match command {
-            EditorCommand::Save => {
-                let _ = self.save();
-            }
-            EditorCommand::Normal(normal_command) => self.handle_normal_command(normal_command),
-            EditorCommand::Visual(visual_command) => self.handle_visual_command(visual_command),
-            EditorCommand::Insert(insert_command) => self.handle_insert_command(insert_command),
-            _ => {
-                // Other cases should have been handled from the editor.rs
-            }
-        }
-    }
 
     pub const fn is_file_loaded(&self) -> bool {
         self.buffer.is_file_loaded()
     }
 
-    fn handle_normal_command(&mut self, command: NormalCommand) {
+    pub fn handle_normal_command(&mut self, command: NormalCommand) {
         match command {
             NormalCommand::Move(direction) => self.move_text_location(&direction),
         }
     }
     // TODO: To be implemented when we have visual command
-    #[allow(unused_variables)]
-    fn handle_visual_command(&mut self, command: VisualCommand) {}
+    // #[allow(unused_variables)]
+    // fn handle_visual_command(&mut self, command: VisualCommand) {}
 
-    fn handle_insert_command(&mut self, command: InsertCommand) {
+    pub fn handle_insert_command(&mut self, command: InsertCommand) {
         match command {
             InsertCommand::Char(c) => {
                 self.insert_char(c);

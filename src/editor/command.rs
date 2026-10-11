@@ -6,7 +6,7 @@ use super::Size;
 pub enum Mode {
     Normal,
     Insert,
-    Visual,
+    // Visual,
 }
 
 impl Default for Mode {
@@ -40,16 +40,16 @@ pub enum InsertCommand {
     Enter,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum VisualCommand {
-    None,
-}
+// #[derive(Debug, Clone, Copy)]
+// pub enum VisualCommand {
+//     None,
+// }
 
 #[derive(Debug, Clone, Copy)]
-pub enum EditorCommand {
+pub enum Command {
     Normal(NormalCommand),
     Insert(InsertCommand),
-    Visual(VisualCommand),
+    // Visual(VisualCommand),
 
     // Global events through all the modes
     Resize(Size),
@@ -60,7 +60,7 @@ pub enum EditorCommand {
     Quit,
 }
 
-impl EditorCommand {
+impl Command {
     #[allow(clippy::as_conversions)]
     pub fn try_from(event: Event, mode: &Mode) -> Result<Self, String> {
         // println!("Command: {event:?}, mode: {mode:?}");
@@ -78,7 +78,7 @@ impl EditorCommand {
                 _,
             ) if code.is_esc() => Ok(Self::Esc),
             (_, Mode::Normal) => Self::from_normal_command(event),
-            (_, Mode::Visual) => Self::from_visual_command(event),
+            // (_, Mode::Visual) => Self::from_visual_command(event),
             (_, Mode::Insert) => Self::from_insert_command(event),
         }
     }
@@ -90,7 +90,7 @@ impl EditorCommand {
         {
             match (code, modifiers) {
                 (KeyCode::Char('i'), _) => Ok(Self::Change(Mode::Insert)),
-                (KeyCode::Char('v'), _) => Ok(Self::Change(Mode::Visual)),
+                // (KeyCode::Char('v'), _) => Ok(Self::Change(Mode::Visual)),
                 (KeyCode::Char('q'), KeyModifiers::CONTROL) => Ok(Self::Quit),
                 (KeyCode::Char('f'), KeyModifiers::CONTROL) => Ok(Self::Search),
                 (KeyCode::Char('s'), KeyModifiers::CONTROL) => Ok(Self::Save),
@@ -144,8 +144,8 @@ impl EditorCommand {
     }
 
     // TODO: Temporary unused variables
-    #[allow(unused_variables)]
-    fn from_visual_command(event: Event) -> Result<Self, String> {
-        Ok(Self::Visual(VisualCommand::None))
-    }
+    // #[allow(unused_variables)]
+    // fn from_visual_command(event: Event) -> Result<Self, String> {
+    //     Ok(Self::Visual(VisualCommand::None))
+    // }
 }

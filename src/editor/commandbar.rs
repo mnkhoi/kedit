@@ -20,10 +20,6 @@ impl CommandBar {
         self.set_needs_redraw(true);
     }
 
-    pub fn is_prompt(&self, other: &str) -> bool {
-        self.prompt == String::from(other)
-    }
-
     pub fn caret_position_col(&self) -> usize {
         let max_width = self
             .prompt
@@ -32,9 +28,14 @@ impl CommandBar {
         min(max_width, self.size.width)
     }
 
+    pub fn clear_value(&mut self) {
+        self.value = Line::default();
+    }
+
     pub fn value(&self) -> String {
         self.value.to_string()
     }
+
     pub fn set_prompt(&mut self, prompt: &str) {
         self.prompt = prompt.to_string();
     }
