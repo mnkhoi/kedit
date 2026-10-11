@@ -191,7 +191,7 @@ impl Line {
         0
     }
 
-    pub fn find(&self, word: &str) -> Option<usize> {
+    pub fn search(&self, word: &str) -> Option<usize> {
         self.string
             .find(word)
             .map(|byte_idx| self.byte_idx_to_grapheme_idx(byte_idx))

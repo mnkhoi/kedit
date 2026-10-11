@@ -337,7 +337,7 @@ impl View {
         if query.is_empty() {
             return;
         }
-        if let Some(text_location) = self.buffer.find(query, &self.text_location) {
+        if let Some(text_location) = self.buffer.search(query, &self.text_location) {
             self.text_location = text_location;
             self.scroll_text_location_into_view();
         }
