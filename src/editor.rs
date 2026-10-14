@@ -17,7 +17,7 @@ mod terminal;
 mod uicomponent;
 mod view;
 
-use command::{Command, InsertCommand, Mode};
+use command::{Command, Direction, InsertCommand, Mode};
 use commandbar::CommandBar;
 use documentstatus::DocumentStatus;
 use line::Line;
@@ -220,6 +220,9 @@ impl Editor {
                 self.mode = Mode::Normal;
                 self.view.exit_search();
             }
+            Command::Insert(InsertCommand::Move(Direction::Right | Direction::Down)) => {
+                self.view.search_next();
+            }
             Command::Insert(insert) => {
                 self.command_bar.handle_edit_command(insert);
                 let query = self.command_bar.value();
@@ -285,7 +288,8 @@ impl Editor {
             PromptType::Save => self.command_bar.set_prompt("Save as: "),
             PromptType::Search => {
                 self.view.enter_search();
-                self.command_bar.set_prompt("Search (Esc to cancel): ");
+                self.command_bar
+                    .set_prompt("Search (Esc to cancel, Arrows to navigate): ");
             }
         }
         self.command_bar.clear_value();

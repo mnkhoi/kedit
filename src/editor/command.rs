@@ -35,6 +35,7 @@ pub enum NormalCommand {
 #[derive(Debug, Clone, Copy)]
 pub enum InsertCommand {
     Char(char),
+    Move(Direction),
     Delete,
     Backspace,
     Enter,
@@ -134,6 +135,18 @@ impl Command {
                 (KeyCode::Enter, KeyModifiers::NONE) => Ok(Self::Insert(InsertCommand::Enter)),
                 (KeyCode::Tab, KeyModifiers::NONE) => Ok(Self::Insert(InsertCommand::Char('\t'))),
                 (KeyCode::Delete, KeyModifiers::NONE) => Ok(Self::Insert(InsertCommand::Delete)),
+                (KeyCode::Up, KeyModifiers::NONE) => {
+                    Ok(Self::Insert(InsertCommand::Move(Direction::Up)))
+                }
+                (KeyCode::Down, KeyModifiers::NONE) => {
+                    Ok(Self::Insert(InsertCommand::Move(Direction::Down)))
+                }
+                (KeyCode::Right, KeyModifiers::NONE) => {
+                    Ok(Self::Insert(InsertCommand::Move(Direction::Right)))
+                }
+                (KeyCode::Left, KeyModifiers::NONE) => {
+                    Ok(Self::Insert(InsertCommand::Move(Direction::Left)))
+                }
                 _ => Err(format!(
                     "Other event not supported in insert mode: {event:?}"
                 )),

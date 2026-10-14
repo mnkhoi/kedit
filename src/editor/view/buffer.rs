@@ -109,15 +109,26 @@ impl Buffer {
         self.lines.len()
     }
 
-    pub fn search(&self, query: &str, start_location: &Location) -> Option<Location> {
-        // TODO: remove later
-        _ = start_location;
-
-        for (line_index, line) in self.lines.iter().enumerate() {
-            if let Some(grapheme_index) = line.search(query) {
+    pub fn search(&self, query: &str, from: Location) -> Option<Location> {
+        for (line_index, line) in self.lines.iter().enumerate().skip(from.line_index) {
+            let from_grapheme_idx = if line_index == from.line_index {
+                from.grapheme_index
+            } else {
+                0
+            };
+            if let Some(grapheme_index) = line.search(query, from_grapheme_idx) {
                 return Some(Location {
                     grapheme_index,
                     line_index,
+                });
+            }
+        }
+
+        for (line_idx, line) in self.lines.iter().enumerate().take(from.line_index) {
+            if let Some(grapheme_idx) = line.search(query, 0) {
+                return Some(Location {
+                    grapheme_index: grapheme_idx,
+                    line_index: line_idx,
                 });
             }
         }

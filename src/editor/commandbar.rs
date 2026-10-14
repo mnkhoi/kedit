@@ -14,7 +14,7 @@ impl CommandBar {
     pub fn handle_edit_command(&mut self, command: InsertCommand) {
         match command {
             InsertCommand::Char(character) => self.value.append_char(character),
-            InsertCommand::Delete | InsertCommand::Enter => {}
+            InsertCommand::Delete | InsertCommand::Enter | InsertCommand::Move(_) => {}
             InsertCommand::Backspace => self.value.delete_last(),
         }
         self.set_needs_redraw(true);

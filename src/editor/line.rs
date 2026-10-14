@@ -1,4 +1,7 @@
-use std::{fmt, ops::Range};
+use std::{
+    fmt,
+    ops::{Deref, Range},
+};
 
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
@@ -45,6 +48,10 @@ impl Line {
         let mut updated = self.to_string();
         updated.push_str(&other.to_string());
         self.fragments = Self::str_to_fragments(&updated);
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.string.is_empty()
     }
 
     fn str_to_fragments(line_str: &str) -> Vec<TextFragment> {
@@ -191,9 +198,17 @@ impl Line {
         0
     }
 
-    pub fn search(&self, word: &str) -> Option<usize> {
+    fn grapheme_idx_to_byte_idx(&self, grapheme_idx: usize) -> usize {
+        self.fragments
+            .get(grapheme_idx)
+            .map_or(0, |fragment| fragment.start_byte_idx)
+    }
+
+    pub fn search(&self, query: &str, from_grapheme_idx: usize) -> Option<usize> {
+        let start_byte_idx = self.grapheme_idx_to_byte_idx(from_grapheme_idx);
         self.string
-            .find(word)
+            .get(start_byte_idx..)
+            .and_then(|substr| substr.find(query))
             .map(|byte_idx| self.byte_idx_to_grapheme_idx(byte_idx))
     }
 }
@@ -201,5 +216,13 @@ impl Line {
 impl fmt::Display for Line {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         write!(formatter, "{}", self.string)
+    }
+}
+
+impl Deref for Line {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.string
     }
 }

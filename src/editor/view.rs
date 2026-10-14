@@ -8,13 +8,13 @@ use std::{cmp::min, io::Error};
 
 mod buffer;
 mod fileinfo;
+mod location;
+mod searchinfo;
 
 use buffer::Buffer;
 use fileinfo::FileInfo;
-
-struct SearchInfo {
-    prev_location: Location,
-}
+use location::Location;
+use searchinfo::SearchInfo;
 
 #[derive(Default)]
 pub struct View {
@@ -24,12 +24,6 @@ pub struct View {
     needs_redraw: bool,
     size: Size,
     search_info: Option<SearchInfo>,
-}
-
-#[derive(Clone, Copy, Default)]
-pub struct Location {
-    pub grapheme_index: usize,
-    pub line_index: usize,
 }
 
 impl View {
@@ -50,6 +44,7 @@ impl View {
 
     pub fn handle_insert_command(&mut self, command: InsertCommand) {
         match command {
+            InsertCommand::Move(_) => {}
             InsertCommand::Char(c) => {
                 self.insert_char(c);
             }
@@ -158,6 +153,19 @@ impl View {
 
         self.scroll_vertically(row);
         self.scroll_horizontally(col);
+    }
+
+    fn center_text_location(&mut self) {
+        let Size { height, width } = self.size;
+        let Position { row, col } = self.text_location_to_position();
+
+        let vertical_mid = height.div_ceil(2);
+        let horizontal_mid = width.div_ceil(2);
+
+        self.scroll_offset.row = row.saturating_sub(vertical_mid);
+        self.scroll_offset.col = col.saturating_sub(horizontal_mid);
+
+        self.set_needs_redraw(true);
     }
 
     // End Region: Scrolling
@@ -318,6 +326,8 @@ impl View {
     pub fn enter_search(&mut self) {
         self.search_info = Some(SearchInfo {
             prev_location: self.text_location,
+            prev_scroll_offset: self.scroll_offset,
+            query: Line::default(),
         });
     }
 
@@ -327,20 +337,52 @@ impl View {
 
     pub fn dismiss_search(&mut self) {
         if let Some(search_info) = &self.search_info {
-            self.text_location = search_info.prev_location
+            self.text_location = search_info.prev_location;
+            self.scroll_offset = search_info.prev_scroll_offset;
+            self.set_needs_redraw(true);
         }
         self.search_info = None;
-        self.scroll_text_location_into_view();
     }
 
     pub fn search(&mut self, query: &str) {
-        if query.is_empty() {
-            return;
+        if let Some(search_info) = &mut self.search_info {
+            search_info.query = Line::from(query);
         }
-        if let Some(text_location) = self.buffer.search(query, &self.text_location) {
-            self.text_location = text_location;
-            self.scroll_text_location_into_view();
+        self.search_from(self.text_location);
+    }
+
+    fn search_from(&mut self, from: Location) {
+        if let Some(search_info) = self.search_info.as_ref() {
+            let query = &search_info.query;
+            if query.is_empty() {
+                return;
+            }
+            if let Some(text_location) = self.buffer.search(query, from) {
+                self.text_location = text_location;
+                self.center_text_location();
+            }
         }
+    }
+
+    pub fn search_next(&mut self) {
+        let step_right;
+        if let Some(search_info) = self.search_info.as_ref() {
+            step_right = min(search_info.query.grapheme_count(), 1);
+        } else {
+            #[cfg(debug_assertions)]
+            {
+                panic!("Attempting to search_next without search_info");
+            }
+            #[cfg(not(debug_assertions))]
+            {
+                return;
+            }
+        }
+        let location = Location {
+            line_index: self.text_location.line_index,
+            grapheme_index: self.text_location.grapheme_index.saturating_add(step_right),
+        };
+        self.search_from(location);
     }
 
     // End Region: Search
